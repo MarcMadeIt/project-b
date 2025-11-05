@@ -12,23 +12,146 @@
 </head>
 
 <body>
+
+    <div class="popup" id="userSettings" role="dialog" aria-modal="true" aria-labelledby="popupTitle"
+        aria-hidden="true">
+        <div class="popup-content">
+            <button class="close-btn" id="closePopupBtn" aria-label="Luk"> <i class="fa-solid fa-close"></i>
+            </button>
+            <h2 id="popupTitle">Brugerindstillinger</h2>
+
+            <form id="settingsForm" class="settings-form">
+                <div class="setting-item">
+                    <label for="prefCity" class="setting-label">
+                        <i class="fa-solid fa-location-dot"></i> Foretrukne by
+                    </label>
+                    <input id="prefCity" name="prefCity" type="text" placeholder="Søg eller vælg by …" />
+                    <div class="loading" id="settingsCityLoading" hidden>
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Søger…</span>
+                    </div>
+                    <div class="error" id="settingsCityError" hidden>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Noget gik galt</span>
+                    </div>
+                    <div class="results" id="settingsCityResults" aria-live="polite"></div>
+                </div>
+                <div class="setting-item">
+                    <label for="prefClothesSelect" class="setting-label">
+                        <i class="fa-solid fa-shirt"></i> Foretrukne tøjkøn
+                    </label>
+                    <select id="prefClothesSelect" name="prefClothesSelect" required>
+                        <option value="" selected disabled>Endnu ikke valgt</option>
+                        <option value="male">Mand</option>
+                        <option value="female">Kvinde</option>
+                        <option value="neutral">Alt</option>
+                    </select>
+                </div>
+
+                <!-- Tema -->
+                <div class="setting-item">
+                    <label for="themeSelect" class="setting-label">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Tema
+                    </label>
+                    <select id="themeSelect" name="themeSelect">
+                        <option value="light">Lightmode</option>
+                        <option value="dark">Darkmode</option>
+                        <option value="system">System</option>
+                    </select>
+                </div>
+
+                <!-- Notifikationer -->
+                <div class="setting-item">
+                    <label for="notifToggle" class="setting-label">
+                        <i class="fa-solid fa-bell"></i> Notifikationer
+                    </label>
+                    <select id="notifToggle" name="notifToggle">
+                        <option value="true">Ja</option>
+                        <option value="false">Nej</option>
+                    </select>
+                </div>
+                <div class="setting-actions">
+                    <button type="submit" class="save-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Gem valg
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="popup" id="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle" aria-hidden="true">
+        <div class="popup-content">
+            <button class="close-btn" id="close-popup" aria-label="Luk">✕</button>
+            <h2 id="popupTitle">Vælg lokation</h2>
+            <input id="search-input" type="text" placeholder="Søg efter by (fx New York)..." />
+            <div class="loading" id="geo-loading" hidden>
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Søger…</span>
+            </div>
+            <div class="error" id="geo-error" hidden>
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Noget gik galt</span>
+            </div>
+            <div class="results" id="geo-results" aria-live="polite">
+                <button class="result-item" data-lat="55.6761" data-lon="12.5683" data-name="København">
+                    <i class="fas fa-location-dot"></i>
+                    <span>København</span>
+                    <small>Hovedstaden, Danmark (DK)</small>
+                </button>
+
+                <button class="result-item" data-lat="56.1629" data-lon="10.2039" data-name="Aarhus">
+                    <i class="fas fa-location-dot"></i>
+                    <span>Aarhus</span>
+                    <small>Midtjylland, Danmark (DK)</small>
+                </button>
+
+                <button class="result-item" data-lat="55.4038" data-lon="10.4024" data-name="Odense">
+                    <i class="fas fa-location-dot"></i>
+                    <span>Odense</span>
+                    <small>Fyn, Danmark (DK)</small>
+                </button>
+
+                <button class="result-item" data-lat="57.0488" data-lon="9.9217" data-name="Aalborg">
+                    <i class="fas fa-location-dot"></i>
+                    <span>Aalborg</span>
+                    <small>Nordjylland, Danmark (DK)</small>
+                </button>
+
+                <button class="result-item" data-lat="55.4765" data-lon="8.4594" data-name="Esbjerg">
+                    <i class="fas fa-location-dot"></i>
+                    <span>Esbjerg</span>
+                    <small>Syddanmark, Danmark (DK)</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <section class="main">
         <div class="header">
             <div class="header-logo">
                 <img src="./assets/img/moving.svg" alt="Logo" class="logo">
                 <h2>Åh Vejr!</h2>
             </div>
+
             <div class="header-actions">
-                <button>
+                <button id="locationBtn">
                     <i class="fa-solid fa-location-dot fa-lg"></i>
                 </button>
-
-                <button id="search-button">
+                <button id="settingsBtn">
                     <i class="fa-solid fa-sliders fa-lg"></i>
                 </button>
             </div>
         </div>
 
+
+
+        <template id="geo-result-template">
+            <button class="result-item">
+                <i class="fas fa-location-dot"></i>
+                <span class="result-name"></span>
+                <small class="result-sub"></small>
+            </button>
+        </template>
         <div class="current">
             <div class="current-city">
                 <h3>Århus, Danmark</h3>
@@ -54,122 +177,183 @@
             </div>
         </div>
     </section>
-    <section class="details">
-        <div class="details-content">
-            <div class="detail-item">
-                <span>Fugtighed</span>
-                <span>65%</span>
-            </div>
-            <div class="detail-item">
-                <span>Vind</span>
-                <span>15 km/t</span>
-            </div>
-        </div>
-        <div class="details-content recommended">
-            <img src="./assets/img/image.png" alt="" class="image-clothing">
-            <h5>Anbefalet tøj</h5>
-            <div class="recommended-item">
-
-                <span>Let Tøj</span>
-
-            </div>
-        </div>
-    </section>
     <div class="tabs" role="tablist" aria-label="Forecast tabs">
         <button class="tab" role="tab" id="tab-week" aria-controls="forecast-week">Ugeoversigt</button>
         <button class="tab" role="tab" id="tab-hours" aria-controls="forecast-hours">Timeoversigt</button>
     </div>
     <section class="forecast">
-        
+
         <ul class="forecast-week" role="tabpanel" id="forecast-week">
             <li class="forecast-day">
-                <span>Mandag</span>
-                <img src="./assets/img/sun.svg" alt="">
+                <div class="forecast-item">
+                    <span>Mandag</span>
                 </div>
-                <span>22°</span>
+                <div class="forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>22°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Tirsdag</span>
-                <img src="./assets/img/sun_cloud.svg" alt="">
-                <span>20°</span>
+                <div class="forecast-item">
+                    <span>Tirsdag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/sun_cloud.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>20°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Onsdag</span>
-                <img src="./assets/img/sun_cloud.svg" alt="">
-                <span>20°</span>
+                <div class="forecast-item">
+                    <span>Onsdag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/sun_cloud.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>20°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Torsdag</span>
-                <img src="./assets/img/rain.svg" alt="">
-                <span>18°</span>
+                <div class="forecast-item">
+                    <span>Torsdag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/rain.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>18°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Fredag</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>25°</span>
+                <div class="forecast-item">
+                    <span>Fredag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>25°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Lørdag</span>
-                <img src="./assets/img/cloud.svg" alt="">
-                <span>19°</span>
+                <div class="forecast-item">
+                    <span>Lørdag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/cloud.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>19°</span>
+                </div>
             </li>
             <li class="forecast-day">
-                <span>Søndag</span>
-                <img src="./assets/img/sun_cloud.svg" alt="">
-                <span>21°</span>
+                <div class="forecast-item">
+                    <span>Søndag</span>
+                </div>
+                <div class="forecast-item">
+                    <img src="./assets/img/sun_cloud.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>21°</span>
+                </div>
             </li>
-
         </ul>
-
-         <ul class="forecast-hours" role="tabpanel" id="forecast-hours">
+        <ul class="forecast-hours" role="tabpanel" id="forecast-hours">
             <li class="forecast-hour">
-                <span>08:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>22°</span>
+                <div class="forecast-item">
+                    <span>08:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>22°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>09:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>23°</span>
+                <div class="forecast-item">
+                    <span>09:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>23°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>10:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>24°</span>
+                <div class="forecast-item">
+                    <span>10:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>24°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>11:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>25°</span>
+                <div class="forecast-item">
+                    <span>11:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>25°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>12:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>26°</span>
+                <div class="forecast-item">
+                    <span>12:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>26°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>13:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>27°</span>
+                <div class="forecast-item">
+                    <span>13:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>27°</span>
+                </div>
             </li>
             <li class="forecast-hour">
-                <span>14:00</span>
-                <img src="./assets/img/sun.svg" alt="">
-                <span>28°</span>
+                <div class="forecast-item">
+                    <span>14:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>27°</span>
+                </div>
+            </li>
+            <li class="forecast-hour">
+                <div class="forecast-item">
+                    <span>14:00</span>
+                </div>
+                <div class="forecast-icon forecast-item">
+                    <img src="./assets/img/sun.svg" alt="">
+                </div>
+                <div class="forecast-item">
+                    <span>28°</span>
+                </div>
             </li>
         </ul>
 
     </section>
-    <div id="popup" class="popup">
-        <div class="popup-content">
-            <button id="close-popup" class="close-btn">
-                <i class="fas fa-times"></i>
-            </button>
-            <h2>Search</h2>
-            <input type="text" id="search-input" placeholder="Type something..." />
-            <div id="geo-results" class="results"></div>
-        </div>
-    </div>
 
 </body>
 <script src="./assets/js/script.js"></script>

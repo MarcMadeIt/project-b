@@ -27,7 +27,6 @@ body {
 
 .main {
     background-color: var(--foreground);
-    backdrop-filter: blur(10px);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -126,7 +125,6 @@ button {
 .details-content {
     background-color: var(--foreground);
     background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
     border: 2px solid var(--shadow);
     border-radius: 12px;
     height: 100%;
@@ -185,7 +183,6 @@ button {
     padding: 15px 10px;
     gap: 5px;
     background-color: var(--foreground);
-    backdrop-filter: blur(10px);
     border-radius: 12px;
     border: 2px solid var(--shadow);
 }
@@ -221,22 +218,45 @@ button {
     width: 20px;
 }
 
-  .tabs {
+
+.forecast-item {
+    flex: 1;
     display: flex;
-    gap: .5rem;
-    margin-bottom: 1rem;
-  }
-  .tab {
-    padding: .5rem .9rem;
-    border: 1px solid #ccc;
-    background: #f7f7f7;
-    cursor: pointer;
-    border-radius: .25rem;
-  }
-  .tab.is-active {
+    justify-content: center;
+    align-items: center;
+}
+
+.weekday {
+    display: flex;
+    align-items: start;
+}
+
+.time {
+    display: flex;
+    align-items: center;
+
+}
+
+
+.tabs {
+    display: flex;
+    gap: 5px;
+    width: 100%;
+
+    padding: 2px;
+
+}
+
+.tab {
+    background-color: var(--foreground);
+}
+
+.tab.is-active {
     background: white;
     border-bottom-color: white;
-    font-weight: 600;
-  }
-  [hidden] { display: none !important; }
- 
+
+}
+
+[hidden] {
+    display: none !important;
+}

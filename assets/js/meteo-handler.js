@@ -5,12 +5,10 @@ async function fetchCurrentWeather(lat, lon) {
   if (!res.ok) throw new Error("Kunne ikke hente vejrdata");
   const json = await res.json();
   if (!json.current_weather) throw new Error("Ingen vejrdata fundet");
-  return json.current_weather; // { temperature, weathercode, is_day, windspeed, ... }
+  return json.current_weather;
 }
 
-// --- Map WMO weather codes -> description + icon filename you have ---
 function mapWeather(code) {
-  // minimal, covers your icon set
   if ([0].includes(code))
     return { text: "Skyfrit", icon: "sun.svg", background: "sun_big.png" };
   if ([1, 2].includes(code))
@@ -27,7 +25,6 @@ function mapWeather(code) {
     };
 
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
-    // drizzle / rain showers
     return {
       text: "Regn",
       icon: "sun_cloud_rain.svg",
@@ -43,7 +40,6 @@ function mapWeather(code) {
       background: "thunder_big.png",
     };
 
-  // fallback
   return {
     text: "Skiftende vejr",
     icon: "sun_cloud.svg",
@@ -51,26 +47,74 @@ function mapWeather(code) {
   };
 }
 
-// --- Update the UI with fetched data ---
-function updateWeatherUI(cityName, current) {
-  const cityEl = document.querySelector(".header .header-items h3");
+function updateWeatherUI(cityName, current, countryName) {
+
+  //Laura
+
+  const cityEl = document.querySelector(".current-city h3");
+
+  //const cityEl = document.querySelector(".header .header-items h3");
+
   const tempEl = document.querySelector(".current-temp h4");
+
   const descEl = document.querySelector(".current-temp span");
+
   const iconEl = document.querySelector(".current-icon img");
+
   //get body for background update
+
   const bodyEl = document.querySelector("body");
+
+
+  //Laura
+
+  const clothesImgEl = document.querySelector(".image-clothing");
+
+  const clothesTextEl = document.querySelector(".recommended .recommended-item span");
 
   const { text, icon, background } = mapWeather(current.weathercode);
 
-  if (cityEl) cityEl.textContent = cityName;
+  // Simple clothing recommendation based on temperature
+  let clothes = "Almindeligt tøj";
+  let clothesImg = "image.png";
+
+  if (current.temperature < 0) {
+    clothes = "Vinterjakke og varmt tøj";
+    clothesImg = "winter_clothes.png";
+  } else if (current.temperature < 10) {
+    clothes = "Jakke eller cardigan";
+    clothesImg = "jacket.png";
+  } else if (current.temperature > 25) {
+    clothes = "Let sommertøj";
+    clothesImg = "summer_clothes.png";
+  }
+
+  if (cityEl) cityEl.textContent = countryName ? `${cityName}, ${countryName}` : cityName;
+
   if (tempEl) tempEl.textContent = `${Math.round(current.temperature)}°`;
+
   if (descEl) descEl.textContent = text;
+
   if (iconEl) iconEl.src = `./assets/img/${icon}`;
+
   if (bodyEl) bodyEl.style.backgroundImage = `url(./assets/img/${background})`;
+
+  // Laura
+
+  if (clothesTextEl) clothesTextEl.textContent = clothes;
+
+  if (clothesImgEl) {
+
+    clothesImgEl.src = `./assets/img/${clothesImg}`;
+
+    clothesImgEl.alt = clothes;
+
+  }
 }
 
-// --- Public: apply a selected location (called from script.js) ---
-async function applyLocationAndClosePopup(name, lat, lon) {
+
+
+async function applyLocationAndClosePopup(name, lat, lon, country, countryCode) {
   const resultsBox = document.getElementById("geo-results");
   const popup = document.getElementById("popup");
 
@@ -83,7 +127,7 @@ async function applyLocationAndClosePopup(name, lat, lon) {
         </div>`;
     }
     const current = await fetchCurrentWeather(lat, lon);
-    updateWeatherUI(name, current);
+    updateWeatherUI(name, current, country);
     if (popup) popup.style.display = "none";
   } catch (err) {
     if (resultsBox) {

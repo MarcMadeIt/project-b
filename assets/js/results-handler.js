@@ -1,12 +1,10 @@
-// getting the geo info from Open-Meteo geocoding API
+
 async function getGeoInfo(name) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-    name
-  )}&language=da`;
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&language=da`;
   const response = await fetch(url);
   const json = await response.json();
   if (!json.results || !json.results.length) throw new Error("By ikke fundet");
-  const results = json?.results.map((g) => ({
+  return json.results.map((g) => ({
     name: g.name,
     country: g.country,
     country_code: g.country_code,
@@ -14,106 +12,176 @@ async function getGeoInfo(name) {
     longitude: g.longitude,
     region: g.admin2 || g.admin1 || "",
   }));
-  return results;
 }
 
-// search pop up handling
-const searchButton = document.getElementById("search-button");
-const popup = document.getElementById("popup");
-const closeButton = document.getElementById("close-popup");
+(function () {
+  let locationButton, locationModal, closeLocationBtn, searchInput, resultsBox, loadingEl, errorEl, tpl;
+  let debounceTimer = null;
 
-searchButton.addEventListener("click", () => {
-  popup.style.display = "flex";
-  // focus input field when pop up opens - user can start typing right away
-  const si = document.getElementById("search-input");
-  if (si) si.focus();
-});
+  document.addEventListener('DOMContentLoaded', () => {
+    locationButton = document.getElementById('locationBtn');
+    locationModal = document.getElementById('popup');
+    closeLocationBtn = document.getElementById('close-popup');
+    searchInput = document.getElementById('search-input');
+    resultsBox = document.getElementById('geo-results');
+    loadingEl = document.getElementById('geo-loading');
+    errorEl = document.getElementById('geo-error');
+    tpl = document.getElementById('geo-result-template');
 
-closeButton.addEventListener("click", () => {
-  popup.style.display = "none";
-});
-
-// close popup when clicking outside the content
-popup.addEventListener("click", (e) => {
-  if (e.target === popup) popup.style.display = "none";
-});
-
-// debouncing the search - only search when user stops typing for 3s
-const searchInput = document.getElementById("search-input");
-const resultsBox = document.getElementById("geo-results");
-let debounceTimer = null;
-
-// UI helpers
-function showWaiting() {
-  resultsBox.innerHTML = `
-    <div class="loading">
-      <i class="fas fa-hourglass-half fa-spin"></i>
-      <span>Waiting for input...</span>
-    </div>
-  `;
-}
-function showLoading() {
-  resultsBox.innerHTML = `
-    <div class="loading">
-      <i class="fas fa-spinner fa-spin"></i>
-      <span>Searching…</span>
-    </div>
-  `;
-}
-function showError(msg) {
-  resultsBox.innerHTML = `
-    <div class="error">
-      <i class="fas fa-exclamation-triangle"></i>
-      <span>${msg}</span>
-    </div>
-  `;
-}
-function renderResults(list) {
-  resultsBox.innerHTML = list
-    .map(
-      (result, index) => `
-      <button key="${index}" class="result-item" data-lat="${result.latitude}" data-lon="${result.longitude}" data-name="${result.name}" aria-label="Vælg ${result.name}">
-        <i class="fas fa-location-dot"></i>
-        <span>${result.name}</span>
-        <small>${result.region}, ${result.country} (${result.country_code})</small>
-      </button>`
-    )
-    .join("");
-
-  // attach click handlers
-  resultsBox.querySelectorAll(".result-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.name;
-      const lat = parseFloat(btn.dataset.lat);
-      const lon = parseFloat(btn.dataset.lon);
-      applyLocationAndClosePopup(name, lat, lon); // from meteo-handler.js
-    });
+    setup();
   });
-}
 
-function clearResults() {
-  resultsBox.innerHTML = "";
-}
+  function setup() {
+    if (locationButton) locationButton.addEventListener('click', openLocationModal);
+    if (closeLocationBtn) closeLocationBtn.addEventListener('click', closeLocationModal);
 
-searchInput.addEventListener("input", () => {
-  const q = searchInput.value.trim();
-  if (debounceTimer) clearTimeout(debounceTimer);
+    if (locationModal) {
+      locationModal.addEventListener('click', (e) => {
+        if (e.target === locationModal) closeLocationModal();
+      });
+    }
 
-  if (!q) {
-    clearResults();
-    return;
+    document.addEventListener('keydown', (e) => {
+      if (locationModal && locationModal.style.display === 'flex' && e.key === 'Escape') {
+        e.preventDefault();
+        closeLocationModal();
+      }
+    });
+
+    if (searchInput) searchInput.addEventListener('input', handleSearchInput);
+    if (resultsBox) resultsBox.addEventListener('click', handleResultClick);
   }
 
-  // show "waiting" indicator while user might still be typing
-  showWaiting();
-
-  debounceTimer = setTimeout(async () => {
-    try {
-      showLoading(); // now start the fetch
-      const data = await getGeoInfo(q);
-      renderResults(data);
-    } catch (err) {
-      showError(err?.message || "Noget gik galt");
+  function openLocationModal() {
+    if (!locationModal) return;
+    locationModal.style.display = 'flex';
+    locationModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    showDefaultCities();
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.focus();
     }
-  }, 3000);
-});
+  }
+
+  function closeLocationModal() {
+    if (!locationModal) return;
+    locationModal.style.display = 'none';
+    locationModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function showDefaultCities() {
+    const defaultCities = [
+      { name: 'København', country: 'Danmark', country_code: 'DK', latitude: 55.6761, longitude: 12.5683, region: 'Hovedstaden' },
+      { name: 'Aarhus', country: 'Danmark', country_code: 'DK', latitude: 56.1629, longitude: 10.2039, region: 'Midtjylland' },
+      { name: 'Odense', country: 'Danmark', country_code: 'DK', latitude: 55.4038, longitude: 10.4024, region: 'Fyn' },
+      { name: 'Aalborg', country: 'Danmark', country_code: 'DK', latitude: 57.0488, longitude: 9.9217, region: 'Nordjylland' },
+      { name: 'Esbjerg', country: 'Danmark', country_code: 'DK', latitude: 55.4765, longitude: 8.4594, region: 'Syddanmark' }
+    ];
+    renderResults(defaultCities);
+  }
+
+  function toggleLoading(show) {
+    if (!loadingEl) return;
+    loadingEl.hidden = !show;
+  }
+
+  function toggleError(msg) {
+    if (!errorEl) return;
+    if (msg) {
+      errorEl.hidden = false;
+      const span = errorEl.querySelector('span');
+      if (span) span.textContent = msg;
+    } else {
+      errorEl.hidden = true;
+    }
+  }
+
+  function clearResults() {
+    if (resultsBox) resultsBox.innerHTML = '';
+  }
+
+  function buildResultItem(item) {
+    const node = tpl && tpl.content ? tpl.content.firstElementChild.cloneNode(true) : document.createElement('button');
+    node.className = node.className || 'result-item';
+    node.dataset.lat = item.latitude;
+    node.dataset.lon = item.longitude;
+    node.dataset.name = item.name;
+    node.dataset.country = item.country || '';
+    node.dataset.countryCode = item.country_code || '';
+    node.setAttribute('aria-label', `Vælg ${item.name}`);
+    const nameEl = node.querySelector('.result-name');
+    const subEl = node.querySelector('.result-sub');
+    if (nameEl) nameEl.textContent = item.name;
+    if (subEl) subEl.textContent = `${item.region ? item.region + ', ' : ''}${item.country} (${item.country_code})`;
+    if (!nameEl || !subEl) {
+      node.innerHTML = `<i class="fas fa-location-dot"></i><span>${item.name}</span><small>${item.region ? item.region + ', ' : ''}${item.country} (${item.country_code})</small>`;
+    }
+    return node;
+  }
+
+  function renderResults(list) {
+    clearResults();
+    if (!list || !list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'result-item';
+      empty.textContent = 'Ingen resultater';
+      resultsBox.appendChild(empty);
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const item of list) frag.appendChild(buildResultItem(item));
+    resultsBox.appendChild(frag);
+  }
+
+  function updateCurrentCity(name, lat, lon, country) {
+    const currentCityElement = document.querySelector('.current-city h3');
+    if (currentCityElement) currentCityElement.textContent = country ? `${name}, ${country}` : name;
+    window.selectedCity = { name, lat, lon };
+  }
+
+  function handleResultClick(e) {
+    const btn = e.target.closest('.result-item');
+    if (!btn) return;
+    const name = btn.dataset.name;
+    const lat = parseFloat(btn.dataset.lat);
+    const lon = parseFloat(btn.dataset.lon);
+    const country = btn.dataset.country || '';
+    const countryCode = btn.dataset.countryCode || '';
+    if (typeof applyLocationAndClosePopup === 'function') {
+      applyLocationAndClosePopup(name, lat, lon, country, countryCode);
+    } else {
+      updateCurrentCity(name, lat, lon, country);
+      closeLocationModal();
+    }
+  }
+
+  function handleSearchInput() {
+    const q = (searchInput?.value || '').trim();
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    if (!q) {
+      showDefaultCities();
+      return;
+    }
+
+    toggleError(null);
+    toggleLoading(false);
+    if (resultsBox) resultsBox.innerHTML = '<div class="loading"><i class="fas fa-hourglass-half fa-spin"></i><span>Søger...</span></div>';
+
+    debounceTimer = setTimeout(async () => {
+      try {
+        toggleError(null);
+        toggleLoading(true);
+        const data = await getGeoInfo(q);
+        renderResults(data);
+      } catch (err) {
+        renderResults([]);
+        toggleError(err?.message || 'Noget gik galt');
+      } finally {
+        toggleLoading(false);
+      }
+    }, 600);
+  }
+})();
