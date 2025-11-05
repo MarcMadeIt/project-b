@@ -12,25 +12,28 @@ body {
     --text: black;
     --background: #a2d1ff;
     --foreground: #c8e1fc8c;
-    --primary: #fff;
+    --primary: #fffefe;
     --secondary: #6859B3;
-
+    --shadow: #aeceee;
     font-family: "Poppins", sans-serif;
     height: 100vh;
     background-color: var(--background);
     color: var(--text);
-    padding: 20px;
-
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 
-main {
+.main {
     background-color: var(--foreground);
     backdrop-filter: blur(10px);
+    border: 2px solid var(--shadow);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+
 }
 
 button {
@@ -48,12 +51,25 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
+    gap: 15px;
+
 }
 
-.header-items {
-    flex: 1;
-    gap: 15px;
+.header-logo {
+    display: flex;
+    align-items: center;
+}
+
+.header-logo img {
+    height: auto;
+    width: 50px;
+}
+
+.header-logo h2 {
+    letter-spacing: -0.5px;
+    font-size: 13px;
+    font-weight: 400;
 }
 
 .header-actions {
@@ -62,21 +78,30 @@ button {
     justify-content: flex-end;
 }
 
-h3 {
-    font-size: 20px;
-    font-weight: 600;
+.current {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 30px;
 }
+
 
 .current-content {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
     gap: 30px;
+
 }
 
 .current-icon {
-    font-size: 110px;
+    height: auto;
+    width: 200px;
+
+}
+
+.current-icon img {
+    height: auto;
+    width: 100%;
 }
 
 .current-temp {
@@ -94,4 +119,85 @@ h3 {
 
 .current-temp span {
     font-size: 20px;
+}
+
+
+/* Current details */
+
+.details {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    height: 150px;
+}
+
+.details-content {
+    background-color: var(--foreground);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--shadow);
+    border-radius: 12px;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.details-item h4 {
+    margin-bottom: 10px;
+}
+
+.image-clothing {
+    position: absolute;
+    top: -20;
+    right: 0;
+    height: auto;
+    width: 100%;
+    opacity: 30%;
+    overflow: hidden;
+}
+
+.recommended-item {
+    font-size: 22px;
+}
+
+/* Forecast */
+
+.forecast {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-x: auto;
+}
+
+.forecast h4 {
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.forecast-week {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    list-style-type: none;
+}
+
+.forecast-day {
+    display: flex;
+    width: 100%;
+    padding: 15px 10px;
+    gap: 5px;
+    background-color: var(--foreground);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 2px solid var(--shadow);
+}
+
+.forecast-day img {
+    height: auto;
+    width: 20px;
 }
