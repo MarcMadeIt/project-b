@@ -75,11 +75,13 @@
             </div>
         </div>
     </section>
-    <button></button>
-    <button></button>
+    <div class="tabs" role="tablist" aria-label="Forecast tabs">
+        <button class="tab" role="tab" id="tab-week" aria-controls="forecast-week">Ugeoversigt</button>
+        <button class="tab" role="tab" id="tab-hours" aria-controls="forecast-hours">Timeoversigt</button>
+    </div>
     <section class="forecast">
-        <h4>Ugeudsigt</h4>
-        <ul class="forecast-week">
+        
+        <ul class="forecast-week" role="tabpanel" id="forecast-week">
             <li class="forecast-day">
                 <span>Mandag</span>
                 <img src="./assets/img/sun.svg" alt="">
@@ -117,6 +119,44 @@
                 <span>21°</span>
             </li>
 
+        </ul>
+
+         <ul class="forecast-hours" role="tabpanel" id="forecast-hours">
+            <li class="forecast-hour">
+                <span>08:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>22°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>09:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>23°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>10:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>24°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>11:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>25°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>12:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>26°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>13:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>27°</span>
+            </li>
+            <li class="forecast-hour">
+                <span>14:00</span>
+                <img src="./assets/img/sun.svg" alt="">
+                <span>28°</span>
+            </li>
         </ul>
 
     </section>
