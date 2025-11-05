@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vejrapp</title>
-    <link rel="stylesheet" href="./assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-</head>
-
+    <link rel="stylesheet" href="./assets/css/style.css" />
+    <link rel="stylesheet" href="./assets/css/pop-up.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+ 
 <body>
     <section class="main">
         <div class="header">
@@ -24,13 +28,25 @@
                 <button>
                     <i class="fa-solid fa-sliders fa-lg"></i>
                 </button>
+                <button id="search-button">
+                    <i class="fa-solid fa-sliders fa-lg"></i>
+                </button>
             </div>
         </div>
 
         <div class="current">
             <div class="current-city">
                 <h3>Århus, Danmark</h3>
-                <span>Tirsdag 4. November 2025</span>
+          <span id="current-date">Tirsdag 4. November 2025</span>
+          <script>
+            document.getElementById("current-date").textContent =
+              new Date().toLocaleDateString("da-DK", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              });
+          </script>
             </div>
             <div class="current-content">
                 <div class="current-icon">
@@ -108,9 +124,21 @@
         </ul>
 
     </section>
+    <div id="popup" class="popup">
+      <div class="popup-content">
+        <button id="close-popup" class="close-btn">
+          <i class="fas fa-times"></i>
+        </button>
+        <h2>Search</h2>
+        <input type="text" id="search-input" placeholder="Type something..." />
+        <div id="geo-results" class="results"></div>
+      </div>
+    </div>
 
 </body>
 <script src="./assets/js/script.js"></script>
+<script src="./assets/js/meteo-handler.js"></script>
+  <script src="./assets/js/results-handler.js"></script>
 
 
 </html>
