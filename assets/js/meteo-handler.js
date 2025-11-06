@@ -76,17 +76,18 @@ function updateWeatherUI(cityName, current, countryName) {
 
   // Simple clothing recommendation based on temperature
   let clothes = "Almindeligt tøj";
-  let clothesImg = "image.png";
+    let clothesImg = "image.png";
+    const profile = getUserClothesProfile();
 
   if (current.temperature < 0) {
     clothes = "Vinterjakke og varmt tøj";
-      clothesImg = "m-snow.png";
+      clothesImg = `clothes/${profile}-snow.png`;
   } else if (current.temperature < 10) {
     clothes = "Jakke eller cardigan";
-    clothesImg = "jacket.png";
+      clothesImg = `clothes/${profile}-mix.png`;
   } else if (current.temperature > 25) {
     clothes = "Let sommertøj";
-    clothesImg = "summer_clothes.png";
+      clothesImg = `clothes/${profile}-sun.png`;
   }
 
   if (cityEl) cityEl.textContent = countryName ? `${cityName}, ${countryName}` : cityName;
@@ -112,6 +113,24 @@ function updateWeatherUI(cityName, current, countryName) {
   }
 }
 
+
+// Funktion til at få tøjprofilen
+function getUserClothesProfile() {
+    try {
+        const raw = localStorage.getItem('ahvejr.settings');
+        if (!raw) return 'n'; // neutral som standard
+        const s = JSON.parse(raw);
+        switch (s.clothes) {
+            case 'male': return 'm';
+            case 'female': return 'w';
+            default: return 'n';
+        }
+    } catch {
+        return 'n';
+    }
+}
+
+//slut
 
 
 async function applyLocationAndClosePopup(name, lat, lon, country, countryCode) {
