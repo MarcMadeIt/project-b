@@ -1,4 +1,3 @@
-// fetch the weather data for given lat/lon
 async function fetchWeather(lat, lon) {
   const url =
     `https://api.open-meteo.com/v1/forecast` +
@@ -15,8 +14,10 @@ async function fetchWeather(lat, lon) {
   return json;
 }
 
+async function fetchCurrentWeather(lat, lon) {
+  return fetchWeather(lat, lon);
+}
 
-// Finder de næste 7 dage
 async function fetchDailyForecast(lat, lon) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
@@ -29,44 +30,215 @@ async function fetchDailyForecast(lat, lon) {
 
 function mapWeather(code) {
   if ([0].includes(code))
-    return { text: "Skyfrit", icon: "sun.svg", background: "sun_big.png" };
+    return { type: 'sun', text: "Skyfrit", icon: "sun.svg" };
   if ([1, 2].includes(code))
     return {
+      type: 'sun_cloud',
       text: "Delvist sol",
       icon: "sun_cloud.svg",
-      background: "sun_cloud_big.png",
     };
   if ([3, 45, 48].includes(code))
     return {
-      text: "Skyet/tåget",
+      type: 'cloud',
+      text: "Skyet/Tåget",
       icon: "sun_cloud.svg",
-      background: "sun_cloud_big.png",
     };
 
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
     return {
+      type: 'rain',
       text: "Regn",
       icon: "sun_cloud_rain.svg",
-      background: "sun_cloud_rain_big.png",
     };
   }
   if (code >= 71 && code <= 77)
-    return { text: "Sne", icon: "snow.svg", background: "snow_big.png" };
+    return { type: 'snow', text: "Sne", icon: "snow.svg" };
   if ([95, 96, 99].includes(code))
     return {
+      type: 'thunder',
       text: "Torden",
       icon: "thunder.svg",
-      background: "thunder_big.png",
     };
 
   return {
+    type: 'mix',
     text: "Skiftende vejr",
     icon: "sun_cloud.svg",
-    background: "sun_cloud_big.png",
   };
 }
 
-//week info
+function getClothesForWeather(profile, type, tempC) {
+  // Normalize profile to 'm', 'w' or 'n' (neutral)
+  const p = (String(profile).toLowerCase() === 'm' || String(profile).toLowerCase() === 'w')
+    ? String(profile).toLowerCase()
+    : 'n';
+
+  // Normalize incoming weather type, but we only use it as a minor qualifier (rain/thunder),
+  // not as the main driver anymore. The main selection is temperature-based.
+  const aliases = {
+    sunny: 'sun',
+    clear: 'sun',
+    partly_cloudy: 'sun_cloud',
+    partlycloudy: 'sun_cloud',
+    overcast: 'cloud',
+    cloudy: 'cloud',
+    drizzle: 'rain',
+    showers: 'rain',
+    sleet: 'mix',
+    hail: 'mix',
+    thunderstorm: 'thunder',
+  };
+  const normTypeRaw = String(type || '').toLowerCase().trim();
+  const typeNorm = ([
+    'sun', 'sun_cloud', 'cloud', 'rain', 'snow', 'thunder', 'mix'
+  ].includes(normTypeRaw) ? normTypeRaw : (aliases[normTypeRaw] || 'mix'));
+
+  // Helpers to produce advice per temperature band for each profile
+  const adviceForBand = (band) => {
+    switch (band) {
+      case 'extreme_cold':
+        return p === 'w'
+          ? 'Ekstrem kulde: meget varm frakke, hue, handsker, halstørklæde og varme støvler'
+          : p === 'm'
+            ? 'Ekstrem kulde: kraftig vinterjakke, hue, handsker, halstørklæde og vinterstøvler'
+            : 'Ekstrem kulde: meget varmt overtøj, hue, handsker og støvler';
+      case 'very_cold': // < 0°C
+        return p === 'w'
+          ? 'Varm frakke, hue, handsker og vinterstøvler'
+          : p === 'm'
+            ? 'Vinterjakke, hue, handsker og vinterstøvler'
+            : 'Varm jakke, hue og handsker';
+      case 'cold': // 0-10°C
+        return p === 'w'
+          ? 'Varm jakke og trøje, lukkede sko'
+          : p === 'm'
+            ? 'Jakke/sweatshirt og lukkede sko'
+            : 'Varm jakke og lukkede sko';
+      case 'cool': // 10-15°C
+        return p === 'w'
+          ? 'Let jakke eller cardigan over bluse'
+          : p === 'm'
+            ? 'Let jakke eller trøje over T‑shirt'
+            : 'Let jakke eller trøje';
+      case 'mild': // 15-20°C
+        return p === 'w'
+          ? 'Let bluse eller T‑shirt, evt. tynd jakke'
+          : p === 'm'
+            ? 'T‑shirt og let trøje'
+            : 'T‑shirt, evt. let jakke';
+      case 'warm': // 20-25°C
+        return p === 'w'
+          ? 'Sommerligt: kjole eller T‑shirt/shorts'
+          : p === 'm'
+            ? 'Sommerligt: T‑shirt og shorts'
+            : 'Let sommertøj';
+      case 'hot': // >= 25°C
+        return p === 'w'
+          ? 'Meget varmt: let sommertøj og solbeskyttelse'
+          : p === 'm'
+            ? 'Meget varmt: T‑shirt/shorts og solbeskyttelse'
+            : 'Meget let sommertøj og solbeskyttelse';
+      default:
+        return 'Praktisk tøj efter vejret';
+    }
+  };
+
+  const imgForBand = (band) => {
+    switch (band) {
+      case 'extreme_cold':
+      case 'very_cold':
+        return 'snow';
+      case 'cold':
+        return 'cloud';
+      case 'cool':
+      case 'mild':
+        return 'spring';
+      case 'warm':
+        return 'sunandcloud';
+      case 'hot':
+        return 'sun';
+      default:
+        return 'mix';
+    }
+  };
+
+  // Determine temperature band
+  let band = 'mild';
+  const hasTemp = typeof tempC === 'number' && !Number.isNaN(tempC);
+  if (hasTemp) {
+    const t = tempC;
+    if (t < -15) band = 'extreme_cold';
+    else if (t < 0) band = 'very_cold';
+    else if (t < 10) band = 'cold';
+    else if (t < 15) band = 'cool';
+    else if (t < 20) band = 'mild';
+    else if (t < 25) band = 'warm';
+    else band = 'hot';
+  }
+
+  // Build advice by temperature first
+  let advice = adviceForBand(band);
+
+  // Qualifiers: if it's raining/thundering, add a waterproof note and align image.
+  let imgKey = imgForBand(band);
+  if (typeNorm === 'rain') {
+    advice += ' + regnjakke/vandtætte sko';
+    imgKey = 'rain';
+  } else if (typeNorm === 'thunder') {
+    advice += ' + vandtæt lag; undgå åbne områder ved torden';
+    imgKey = 'thunder';
+  } else if (typeNorm === 'snow' && (band !== 'extreme_cold' && band !== 'very_cold')) {
+    advice += ' + varme handsker og hue';
+    imgKey = 'snow';
+  }
+
+  // Fallback if temperature is not available: use former type-based mapping
+  if (!hasTemp) {
+    const textByType = {
+      sun: p === 'w' ? 'Let sommertøj og solbriller'
+        : p === 'm' ? 'T-shirt, shorts og kasket'
+          : 'Let sommertøj',
+      sun_cloud: p === 'w' ? 'Let bluse eller T-shirt og evt. en tynd cardigan'
+        : p === 'm' ? 'T-shirt og let trøje'
+          : 'Let trøje eller T-shirt',
+      cloud: p === 'w' ? 'Let jakke eller windbreaker'
+        : p === 'm' ? 'Jakke eller sweatshirt'
+          : 'Let jakke',
+      rain: p === 'w' ? 'Regnjakke, vandtætte sko og evt. paraply'
+        : p === 'm' ? 'Regnfrakke eller skaljakke og vandtætte sko'
+          : 'Regnfrakke/paraply og vandtætte sko',
+      snow: p === 'w' ? 'Varm frakke, hue, handsker og støvler'
+        : p === 'm' ? 'Vinterjakke, hue, handsker og støvler'
+          : 'Varm jakke, hue og handsker',
+      thunder: p === 'w' ? 'Vandtæt jakke og solide sko (undgå åbne områder)'
+        : p === 'm' ? 'Vandtæt jakke og robuste sko'
+          : 'Vandtæt jakke og solide sko',
+      mix: p === 'w' ? 'Lag-på-lag: let jakke over bluse eller T-shirt'
+        : p === 'm' ? 'Lag-på-lag: trøje over T-shirt'
+          : 'Fleksibelt lag-på-lag (skiftende vejr)'
+    };
+    const imgTypeMap = {
+      sun: 'sun',
+      sun_cloud: 'sunandcloud',
+      cloud: 'cloud',
+      rain: 'rain',
+      snow: 'snow',
+      thunder: 'thunder',
+      mix: 'mix'
+    };
+    advice = textByType[typeNorm] || 'Praktisk tøj efter vejret';
+    imgKey = imgTypeMap[typeNorm] || 'mix';
+  }
+
+  return {
+    text: advice,
+    img: `clothes/${p}-${imgKey}.png`,
+    // Keep returning weather type for compatibility with any callers that might use it
+    type: typeNorm
+  };
+}
+
+
 function updateWeekFromDaily(daily) {
   const list = document.querySelector('.forecast-week');
   if (!list || !daily || !daily.time) return;
@@ -74,29 +246,27 @@ function updateWeekFromDaily(daily) {
   const items = Array.from(list.children);
   const count = Math.min(items.length, daily.time.length, 7);
 
-  // start fra +1 dag
   const startOffset = 1;
 
   for (let k = 0; k < count; k++) {
     const i = (startOffset + k) % daily.time.length;
-    const dateStr = daily.time[i];               // "YYYY-MM-DD"
-    const d = new Date(dateStr + 'T12:00:00');   // undgå TZ-drift
+    const dateStr = daily.time[i];
+    const d = new Date(dateStr + 'T12:00:00');
     const dayName = d.toLocaleDateString('da-DK', { weekday: 'long' })
       .replace(/^\w/, c => c.toUpperCase());
 
     const code = daily.weathercode[i];
-    const vis = mapWeather(code);                // genbruger mapWeather funktion
+    const vis = mapWeather(code);
     const maxC = Math.round(daily.temperature_2m_max[i]);
 
     const li = items[k];
-    const nameEl = li.querySelector('.forecast-item span'); // første kolonne (dag)
-    const imgEl = li.querySelector('.forecast-day img, .forecast-icon img'); // midt (ikon)
-    const tempEl = li.querySelector('.forecast-item:last-child span'); // sidste (temp)
+    const nameEl = li.querySelector('.forecast-item span');
+    const imgEl = li.querySelector('.forecast-day img, .forecast-icon img');
+    const tempEl = li.querySelector('.forecast-item:last-child span');
 
     if (nameEl) nameEl.textContent = dayName;
 
     if (imgEl) {
-      // vælger ikon fra mapWeather
       imgEl.src = `./assets/img/${vis.icon}`;
       imgEl.alt = vis.text || 'Vejr';
     }
@@ -104,7 +274,7 @@ function updateWeekFromDaily(daily) {
     if (tempEl) tempEl.textContent = `${maxC}°`;
   }
 }
-//slut
+
 
 function updateWeatherUI(cityName, data, countryName) {
 
@@ -112,59 +282,42 @@ function updateWeatherUI(cityName, data, countryName) {
 
 
   const cityEl = document.querySelector(".current-city h3");
-
   const tempEl = document.querySelector(".current-temp h4");
-
   const descEl = document.querySelector(".current-temp span");
-
   const iconEl = document.querySelector(".current-icon img");
-
-  //get body for background update
-
-  const bodyEl = document.querySelector("body");
-
-
-  //Laura
-
   const clothesImgEl = document.querySelector(".image-clothing");
-
   const clothesTextEl = document.querySelector(".recommended .recommended-item span");
 
-  const { text, icon, background } = mapWeather(current.weathercode);
+  const vis = mapWeather(current.weathercode);
+  const { text, icon, type } = vis;
 
-  // Simple clothing recommendation based on temperature
-  let clothes = "Almindeligt tøj";
-  let clothesImg = "image.png";
   const profile = getUserClothesProfile();
+  const rec = getClothesForWeather(profile, type, current.temperature);
+  const clothes = rec.text;
+  const clothesImg = rec.img;
 
-  if (current.temperature < 0) {
-    if (profile === 'm') clothes = "Varm vinterjakke og støvler";
-    else if (profile === 'w') clothes = "Vinterfrakke, hue og støvler";
-    else clothes = "Varm jakke, hue og handsker";
+  // Add/update profile icon after the 'Anbefalet tøj' title based on selected profile
+  const titleEl = document.querySelector('.recommended .recommended-item h4');
+  if (titleEl) {
+    let faClass = 'fa-non-binary';
+    let aria = 'Andet/neutral profil';
+    if (profile === 'm') { faClass = 'fa-mars'; aria = 'Mand profil'; }
+    else if (profile === 'w') { faClass = 'fa-venus'; aria = 'Kvinde profil'; }
 
-    clothesImg = `clothes/${profile}-snow.png`;
-
-  } else if (current.temperature < 10) {
-    if (profile === 'm') clothes = "Jakke og sweatshirt";
-    else if (profile === 'w') clothes = "Cardigan og lange bukser";
-    else clothes = "Let jakke og jeans";
-
-    clothesImg = `clothes/${profile}-mix.png`;
-
-  } else if (current.temperature > 25) {
-    if (profile === 'm') clothes = "T-shirt, shorts og kasket";
-    else if (profile === 'w') clothes = "Top, nederdel eller kjole og solbriller";
-    else clothes = "T-shirt, shorts og solbriller";
-
-    clothesImg = `clothes/${profile}-sun.png`;
-
-
-  } else if (current.temperature <= 25) {
-    if (profile === 'm') clothes = "Langærmet trøje eller T-shirt med bukser";
-    else if (profile === 'w') clothes = "Let bluse, jeans eller en tynd jakke";
-    else clothes = "Langærmet trøje og bukser";
-
-    clothesImg = `clothes/${profile}-spring.png`;
+    let profileIcon = titleEl.querySelector('.profile-icon');
+    if (!profileIcon) {
+      profileIcon = document.createElement('i');
+      profileIcon.className = `fa-solid ${faClass} profile-icon`;
+      profileIcon.style.marginLeft = '0.4rem';
+      profileIcon.setAttribute('aria-label', aria);
+      profileIcon.setAttribute('title', aria);
+      titleEl.appendChild(profileIcon);
+    } else {
+      // Reset classes keeping our marker
+      profileIcon.className = `fa-solid ${faClass} profile-icon`;
+      profileIcon.setAttribute('aria-label', aria);
+      profileIcon.setAttribute('title', aria);
+    }
   }
 
   if (cityEl) cityEl.textContent = countryName ? `${cityName}, ${countryName}` : cityName;
@@ -174,10 +327,6 @@ function updateWeatherUI(cityName, data, countryName) {
   if (descEl) descEl.textContent = text;
 
   if (iconEl) iconEl.src = `./assets/img/${icon}`;
-
-  if (bodyEl) bodyEl.style.backgroundImage = `url(./assets/img/${background})`;
-
-  // Laura
 
   if (clothesTextEl) clothesTextEl.textContent = clothes;
 
@@ -189,7 +338,7 @@ function updateWeatherUI(cityName, data, countryName) {
 
   }
 
-  renderForecastHours(data.hourly, 12);
+  renderForecastHours(data.hourly, 24);
 }
 
 function iconPathForCode(code) {
@@ -226,16 +375,15 @@ function renderForecastHours(hourly, count = 12) {
   ul.innerHTML = items.join("");
 }
 
-
-// Funktion til at få tøjprofilen
 function getUserClothesProfile() {
   try {
     const raw = localStorage.getItem('ahvejr.settings');
-    if (!raw) return 'n'; // neutral som standard
+    if (!raw) return 'n';
     const s = JSON.parse(raw);
     switch (s.clothes) {
       case 'male': return 'm';
       case 'female': return 'w';
+      case 'neutral': return 'n';
       default: return 'n';
     }
   } catch {
@@ -243,9 +391,6 @@ function getUserClothesProfile() {
   }
 }
 
-//slut
-
-// opdateret så kommende dage oogså er med
 async function applyLocationAndClosePopup(name, lat, lon, country) {
   const resultsBox = document.getElementById("geo-results");
   const popup = document.getElementById("popup");
@@ -258,13 +403,11 @@ async function applyLocationAndClosePopup(name, lat, lon, country) {
           <span>Henter vejr…</span>
         </div>`;
     }
-    // henter både nuværende vejr + forventet vejr
     const [current, daily] = await Promise.all([
       fetchCurrentWeather(lat, lon),
       fetchDailyForecast(lat, lon),
     ]);
 
-    // opdatere UI
     updateWeatherUI(name, current, country);
     updateWeekFromDaily(daily);
 

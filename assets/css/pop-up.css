@@ -49,7 +49,7 @@ input[type="text"] {
   gap: 8px;
 }
 
-/* Settings: make the city search dropdown absolute so it doesn't shift layout */
+
 #userSettings .setting-item {
   position: relative;
 }

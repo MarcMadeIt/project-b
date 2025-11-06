@@ -18,7 +18,6 @@
             <button class="close-btn" id="closePopupBtn" aria-label="Luk"> <i class="fa-solid fa-close"></i>
             </button>
             <h2 id="popupTitle">Brugerindstillinger</h2>
-
             <form id="settingsForm" class="settings-form">
                 <div class="setting-item">
                     <label for="prefCity" class="setting-label">
@@ -43,11 +42,9 @@
                         <option value="" selected disabled>Endnu ikke valgt</option>
                         <option value="male">Mand</option>
                         <option value="female">Kvinde</option>
-                        <option value="neutral">Alt</option>
+                        <option value="neutral">Andet</option>
                     </select>
                 </div>
-
-                <!-- Tema -->
                 <div class="setting-item">
                     <label for="themeSelect" class="setting-label">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Tema
@@ -58,8 +55,6 @@
                         <option value="system">System</option>
                     </select>
                 </div>
-
-                <!-- Notifikationer -->
                 <div class="setting-item">
                     <label for="notifToggle" class="setting-label">
                         <i class="fa-solid fa-bell"></i> Notifikationer
@@ -173,25 +168,35 @@
                     <h4>22°</h4>
                     <span>Delvist sol</span>
                 </div>
-
-                <!-- Tøjforslag -->
-                <div class="details">
-                    <div class="details-content recommended">
-                        <img class="image-clothing" src="./assets/img/outfit_neutral_cool.png" alt="Tøjanbefaling" />
-                        <div class="recommended-item">
-                            <h4>Dagligt tøjtips</h4>
-                            <span>Opdateres efter vejret…</span>
-                        </div>
-                    </div>
-                </div>
-                <!-- Tøjforslag -->
-
             </div>
 
-          
+
 
         </div>
     </section>
+    <section class="details">
+
+        <div class="details-content details-extra">
+            <div class="detail-item">
+                <i class="fa-solid fa-water"></i>
+                <span>60%</span>
+            </div>
+            <div class="detail-item">
+                <i class="fa-solid fa-wind"></i>
+                <span>15 km/t</span>
+            </div>
+
+        </div>
+
+
+        <div class="details-content recommended">
+            <img class="image-clothing" src="./assets/img/outfit_neutral_cool.png" alt="Tøjanbefaling" />
+            <div class="recommended-item">
+                <h4>Anbefalet tøj</h4>
+                <span>Opdateres efter vejret…</span>
+            </div>
+    </section>
+
     <div class="tabs" role="tablist" aria-label="Forecast tabs">
         <button class="tab" role="tab" id="tab-week" aria-controls="forecast-week">Ugeoversigt</button>
         <button class="tab" role="tab" id="tab-hours" aria-controls="forecast-hours">Timeoversigt</button>
