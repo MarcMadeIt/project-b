@@ -80,7 +80,7 @@ function updateWeatherUI(cityName, current, countryName) {
 
   if (current.temperature < 0) {
     clothes = "Vinterjakke og varmt tøj";
-    clothesImg = "winter_clothes.png";
+      clothesImg = "m-snow.png";
   } else if (current.temperature < 10) {
     clothes = "Jakke eller cardigan";
     clothesImg = "jacket.png";
