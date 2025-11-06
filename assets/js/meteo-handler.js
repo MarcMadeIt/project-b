@@ -11,13 +11,13 @@ async function fetchCurrentWeather(lat, lon) {
 
 // Finder de næste 7 dage
 async function fetchDailyForecast(lat, lon) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-        `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Kunne ikke hente dagsprognose");
-    const json = await res.json();
-    if (!json.daily) throw new Error("Ingen dagsprognose fundet");
-    return json.daily; // { time[], weathercode[], temperature_2m_max[], ... }
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Kunne ikke hente dagsprognose");
+  const json = await res.json();
+  if (!json.daily) throw new Error("Ingen dagsprognose fundet");
+  return json.daily;
 }
 
 function mapWeather(code) {
@@ -61,41 +61,41 @@ function mapWeather(code) {
 
 //week info
 function updateWeekFromDaily(daily) {
-    const list = document.querySelector('.forecast-week');
-    if (!list || !daily || !daily.time) return;
+  const list = document.querySelector('.forecast-week');
+  if (!list || !daily || !daily.time) return;
 
-    const items = Array.from(list.children);  
-    const count = Math.min(items.length, daily.time.length, 7);
+  const items = Array.from(list.children);
+  const count = Math.min(items.length, daily.time.length, 7);
 
-    // start fra +1 dag
-    const startOffset = 1;
+  // start fra +1 dag
+  const startOffset = 1;
 
-    for (let k = 0; k < count; k++) {
-        const i = (startOffset + k) % daily.time.length;
-        const dateStr = daily.time[i];               // "YYYY-MM-DD"
-        const d = new Date(dateStr + 'T12:00:00');   // undgå TZ-drift
-        const dayName = d.toLocaleDateString('da-DK', { weekday: 'long' })
-            .replace(/^\w/, c => c.toUpperCase());
+  for (let k = 0; k < count; k++) {
+    const i = (startOffset + k) % daily.time.length;
+    const dateStr = daily.time[i];               // "YYYY-MM-DD"
+    const d = new Date(dateStr + 'T12:00:00');   // undgå TZ-drift
+    const dayName = d.toLocaleDateString('da-DK', { weekday: 'long' })
+      .replace(/^\w/, c => c.toUpperCase());
 
-        const code = daily.weathercode[i];
-        const vis = mapWeather(code);                // genbruger mapWeather funktion
-        const maxC = Math.round(daily.temperature_2m_max[i]);
+    const code = daily.weathercode[i];
+    const vis = mapWeather(code);                // genbruger mapWeather funktion
+    const maxC = Math.round(daily.temperature_2m_max[i]);
 
-        const li = items[k];
-        const nameEl = li.querySelector('.forecast-item span'); // første kolonne (dag)
-        const imgEl = li.querySelector('.forecast-day img, .forecast-icon img'); // midt (ikon)
-        const tempEl = li.querySelector('.forecast-item:last-child span'); // sidste (temp)
+    const li = items[k];
+    const nameEl = li.querySelector('.forecast-item span'); // første kolonne (dag)
+    const imgEl = li.querySelector('.forecast-day img, .forecast-icon img'); // midt (ikon)
+    const tempEl = li.querySelector('.forecast-item:last-child span'); // sidste (temp)
 
-        if (nameEl) nameEl.textContent = dayName;
+    if (nameEl) nameEl.textContent = dayName;
 
-        if (imgEl) {
-            // vælger ikon fra mapWeather
-            imgEl.src = `./assets/img/${vis.icon}`;
-            imgEl.alt = vis.text || 'Vejr';
-        }
-
-        if (tempEl) tempEl.textContent = `${maxC}°`;
+    if (imgEl) {
+      // vælger ikon fra mapWeather
+      imgEl.src = `./assets/img/${vis.icon}`;
+      imgEl.alt = vis.text || 'Vejr';
     }
+
+    if (tempEl) tempEl.textContent = `${maxC}°`;
+  }
 }
 //slut
 
@@ -126,37 +126,37 @@ function updateWeatherUI(cityName, current, countryName) {
   // Simple clothing recommendation based on temperature
   let clothes = "Almindeligt tøj";
   let clothesImg = "image.png";
-    const profile = getUserClothesProfile();
+  const profile = getUserClothesProfile();
 
-    if (current.temperature < 0) {
-        if (profile === 'm') clothes = "Varm vinterjakke og støvler";
-        else if (profile === 'w') clothes = "Vinterfrakke, hue og støvler";
-        else clothes = "Varm jakke, hue og handsker";
+  if (current.temperature < 0) {
+    if (profile === 'm') clothes = "Varm vinterjakke og støvler";
+    else if (profile === 'w') clothes = "Vinterfrakke, hue og støvler";
+    else clothes = "Varm jakke, hue og handsker";
 
-        clothesImg = `clothes/${profile}-snow.png`;
+    clothesImg = `clothes/${profile}-snow.png`;
 
-    } else if (current.temperature < 10) {
-        if (profile === 'm') clothes = "Jakke og sweatshirt";
-        else if (profile === 'w') clothes = "Cardigan og lange bukser";
-        else clothes = "Let jakke og jeans";
+  } else if (current.temperature < 10) {
+    if (profile === 'm') clothes = "Jakke og sweatshirt";
+    else if (profile === 'w') clothes = "Cardigan og lange bukser";
+    else clothes = "Let jakke og jeans";
 
-        clothesImg = `clothes/${profile}-mix.png`;
+    clothesImg = `clothes/${profile}-mix.png`;
 
   } else if (current.temperature > 25) {
-        if (profile === 'm') clothes = "T-shirt, shorts og kasket";
-        else if (profile === 'w') clothes = "Top, nederdel eller kjole og solbriller";
-        else clothes = "T-shirt, shorts og solbriller";
+    if (profile === 'm') clothes = "T-shirt, shorts og kasket";
+    else if (profile === 'w') clothes = "Top, nederdel eller kjole og solbriller";
+    else clothes = "T-shirt, shorts og solbriller";
 
-      clothesImg = `clothes/${profile}-sun.png`;
-    
+    clothesImg = `clothes/${profile}-sun.png`;
 
-} else if (current.temperature <= 25) {
+
+  } else if (current.temperature <= 25) {
     if (profile === 'm') clothes = "Langærmet trøje eller T-shirt med bukser";
     else if (profile === 'w') clothes = "Let bluse, jeans eller en tynd jakke";
     else clothes = "Langærmet trøje og bukser";
 
     clothesImg = `clothes/${profile}-spring.png`;
-}
+  }
 
   if (cityEl) cityEl.textContent = countryName ? `${cityName}, ${countryName}` : cityName;
 
@@ -184,18 +184,18 @@ function updateWeatherUI(cityName, current, countryName) {
 
 // Funktion til at få tøjprofilen
 function getUserClothesProfile() {
-    try {
-        const raw = localStorage.getItem('ahvejr.settings');
-        if (!raw) return 'n'; // neutral som standard
-        const s = JSON.parse(raw);
-        switch (s.clothes) {
-            case 'male': return 'm';
-            case 'female': return 'w';
-            default: return 'n';
-        }
-    } catch {
-        return 'n';
+  try {
+    const raw = localStorage.getItem('ahvejr.settings');
+    if (!raw) return 'n'; // neutral som standard
+    const s = JSON.parse(raw);
+    switch (s.clothes) {
+      case 'male': return 'm';
+      case 'female': return 'w';
+      default: return 'n';
     }
+  } catch {
+    return 'n';
+  }
 }
 
 //slut
@@ -213,15 +213,15 @@ async function applyLocationAndClosePopup(name, lat, lon, country) {
           <span>Henter vejr…</span>
         </div>`;
     }
-      // henter både nuværende vejr + forventet vejr
-      const [current, daily] = await Promise.all([
-          fetchCurrentWeather(lat, lon),
-          fetchDailyForecast(lat, lon),
-      ]);
+    // henter både nuværende vejr + forventet vejr
+    const [current, daily] = await Promise.all([
+      fetchCurrentWeather(lat, lon),
+      fetchDailyForecast(lat, lon),
+    ]);
 
-      // opdatere UI
-      updateWeatherUI(name, current, country);
-      updateWeekFromDaily(daily); 
+    // opdatere UI
+    updateWeatherUI(name, current, country);
+    updateWeekFromDaily(daily);
 
     if (popup) popup.style.display = "none";
   } catch (err) {
