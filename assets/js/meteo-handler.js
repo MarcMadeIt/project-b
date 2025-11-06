@@ -300,6 +300,8 @@ function updateWeatherUI(cityName, data, countryName) {
   const iconEl = document.querySelector(".current-icon img");
   const clothesImgEl = document.querySelector(".image-clothing");
   const clothesTextEl = document.querySelector(".recommended .recommended-item span");
+  const windElement = document.getElementById("wind").querySelector("span");
+  const humidityElement = document.getElementById("humidity").querySelector("span");
 
   const vis = mapWeather(current.weathercode);
   const { text, icon, type } = vis;
@@ -350,6 +352,10 @@ function updateWeatherUI(cityName, data, countryName) {
   }
 
   renderForecastHours(data.hourly, 24);
+  const windKmh = Math.round(data.current_weather.windspeed);
+  const humidity = getCurrentHumidity(data);
+  if (windElement) windElement.textContent = `${windKmh} km/t`;
+  if (humidityElement && humidity !== null) humidityElement.textContent = `${humidity} %`;
 }
 
 function iconPathForCode(code) {
@@ -400,6 +406,25 @@ function getUserClothesProfile() {
   } catch {
     return 'n';
   }
+}
+
+function getCurrentHumidity(json) {
+  const { current_weather, hourly } = json;
+  const currentTime = new Date(current_weather.time);
+  const times = hourly.time.map(t => new Date(t));
+
+  let closestIndex = 0;
+  let minDiff = Infinity;
+
+  times.forEach((t, i) => {
+    const diff = Math.abs(t - currentTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIndex = i;
+    }
+  });
+
+  return hourly.relative_humidity_2m[closestIndex];
 }
 
 async function applyLocationAndClosePopup(name, lat, lon, country) {
