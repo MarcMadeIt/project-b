@@ -167,6 +167,7 @@ function closeSettingsPopup() {
   if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
 }
 
+
 if (settingsBtn) settingsBtn.addEventListener('click', openSettingsPopup);
 if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', closeSettingsPopup);
 
@@ -330,6 +331,37 @@ function handleSettingsCitySearch() {
   }, 500);
 }
 if (prefCityInput) prefCityInput.addEventListener('input', handleSettingsCitySearch);
+
+// opsæt vejr efter korrekt rækkefølge
+function rotateForecastWeekToTomorrow() {
+    const list = document.querySelector('.forecast-week');
+    if (!list) return;
+
+    const items = Array.from(list.children);
+
+    // 7 dage
+    if (items.length !== 7) return; 
+
+    const jsDay = new Date().getDay();
+    const namesJS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+
+    // find index i liste udfra navn i html
+    const liNames = items.map(li => (li.querySelector('.forecast-item span')?.textContent || '').trim());
+    let todayIdx = liNames.findIndex(n => n.toLowerCase() === namesJS[jsDay].toLowerCase());
+
+    // starter fra dagen efter current dag
+    const start = (todayIdx + 1) % items.length;
+    const rotated = [...items.slice(start), ...items.slice(0, start)];
+
+    // Sæt dem ind i ny rækkefølge
+    list.innerHTML = '';
+    rotated.forEach(li => list.appendChild(li));
+}
+//slut
+
+// Kør når DOM er klar
+document.addEventListener('DOMContentLoaded', rotateForecastWeekToTomorrow);
+
 
 // Ensure app default city is preferred city; on first run default to Aarhus
 (function applyDefaultCityOnLoad() {

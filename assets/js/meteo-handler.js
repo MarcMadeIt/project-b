@@ -8,6 +8,18 @@ async function fetchCurrentWeather(lat, lon) {
   return json.current_weather;
 }
 
+
+// Finder de næste 7 dage
+async function fetchDailyForecast(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Kunne ikke hente dagsprognose");
+    const json = await res.json();
+    if (!json.daily) throw new Error("Ingen dagsprognose fundet");
+    return json.daily; // { time[], weathercode[], temperature_2m_max[], ... }
+}
+
 function mapWeather(code) {
   if ([0].includes(code))
     return { text: "Skyfrit", icon: "sun.svg", background: "sun_big.png" };
@@ -47,13 +59,50 @@ function mapWeather(code) {
   };
 }
 
+//week info
+function updateWeekFromDaily(daily) {
+    const list = document.querySelector('.forecast-week');
+    if (!list || !daily || !daily.time) return;
+
+    const items = Array.from(list.children);  
+    const count = Math.min(items.length, daily.time.length, 7);
+
+    // start fra +1 dag
+    const startOffset = 1;
+
+    for (let k = 0; k < count; k++) {
+        const i = (startOffset + k) % daily.time.length;
+        const dateStr = daily.time[i];               // "YYYY-MM-DD"
+        const d = new Date(dateStr + 'T12:00:00');   // undgå TZ-drift
+        const dayName = d.toLocaleDateString('da-DK', { weekday: 'long' })
+            .replace(/^\w/, c => c.toUpperCase());
+
+        const code = daily.weathercode[i];
+        const vis = mapWeather(code);                // genbruger mapWeather funktion
+        const maxC = Math.round(daily.temperature_2m_max[i]);
+
+        const li = items[k];
+        const nameEl = li.querySelector('.forecast-item span'); // første kolonne (dag)
+        const imgEl = li.querySelector('.forecast-day img, .forecast-icon img'); // midt (ikon)
+        const tempEl = li.querySelector('.forecast-item:last-child span'); // sidste (temp)
+
+        if (nameEl) nameEl.textContent = dayName;
+
+        if (imgEl) {
+            // vælger ikon fra mapWeather
+            imgEl.src = `./assets/img/${vis.icon}`;
+            imgEl.alt = vis.text || 'Vejr';
+        }
+
+        if (tempEl) tempEl.textContent = `${maxC}°`;
+    }
+}
+//slut
+
 function updateWeatherUI(cityName, current, countryName) {
 
-  //Laura
 
   const cityEl = document.querySelector(".current-city h3");
-
-  //const cityEl = document.querySelector(".header .header-items h3");
 
   const tempEl = document.querySelector(".current-temp h4");
 
@@ -143,8 +192,8 @@ function getUserClothesProfile() {
 
 //slut
 
-
-async function applyLocationAndClosePopup(name, lat, lon, country, countryCode) {
+// opdateret så kommende dage oogså er med
+async function applyLocationAndClosePopup(name, lat, lon, country) {
   const resultsBox = document.getElementById("geo-results");
   const popup = document.getElementById("popup");
 
@@ -156,8 +205,16 @@ async function applyLocationAndClosePopup(name, lat, lon, country, countryCode) 
           <span>Henter vejr…</span>
         </div>`;
     }
-    const current = await fetchCurrentWeather(lat, lon);
-    updateWeatherUI(name, current, country);
+      // henter både nuværende vejr + forventet vejr
+      const [current, daily] = await Promise.all([
+          fetchCurrentWeather(lat, lon),
+          fetchDailyForecast(lat, lon),
+      ]);
+
+      // opdatere UI
+      updateWeatherUI(name, current, country);
+      updateWeekFromDaily(daily); 
+
     if (popup) popup.style.display = "none";
   } catch (err) {
     if (resultsBox) {
