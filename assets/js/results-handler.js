@@ -14,8 +14,39 @@ async function getGeoInfo(name) {
   }));
 }
 
+// Geolocation helper wrapped in a Promise
+function getCurrentPositionPromise(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) {
+      return reject(new Error('Geolocation ikke tilgængelig'));
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      (err) => reject(err),
+      options
+    );
+  });
+}
+
+// Reverse geocoding: coords -> nearest place info
+async function getGeoInfoReverse(lat, lon) {
+  const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&language=da`;
+  const response = await fetch(url);
+  const json = await response.json();
+  if (!json.results || !json.results.length) return null;
+  const g = json.results[0];
+  return {
+    name: g.name,
+    country: g.country,
+    country_code: g.country_code,
+    latitude: g.latitude,
+    longitude: g.longitude,
+    region: g.admin2 || g.admin1 || "",
+  };
+}
+
 (function () {
-  let locationButton, locationModal, closeLocationBtn, searchInput, resultsBox, loadingEl, errorEl, tpl;
+  let locationButton, locationModal, closeLocationBtn, searchInput, resultsBox, loadingEl, errorEl, tpl, useCurrentBtn;
   let debounceTimer = null;
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -27,6 +58,7 @@ async function getGeoInfo(name) {
     loadingEl = document.getElementById('geo-loading');
     errorEl = document.getElementById('geo-error');
     tpl = document.getElementById('geo-result-template');
+    useCurrentBtn = document.getElementById('use-current-location');
 
     setup();
   });
@@ -50,6 +82,7 @@ async function getGeoInfo(name) {
 
     if (searchInput) searchInput.addEventListener('input', handleSearchInput);
     if (resultsBox) resultsBox.addEventListener('click', handleResultClick);
+    if (useCurrentBtn) useCurrentBtn.addEventListener('click', handleUseCurrentLocation);
   }
 
   function openLocationModal() {
@@ -95,6 +128,40 @@ async function getGeoInfo(name) {
       if (span) span.textContent = msg;
     } else {
       errorEl.hidden = true;
+    }
+  }
+
+  async function handleUseCurrentLocation() {
+    if (!useCurrentBtn) return;
+    toggleError(null);
+    useCurrentBtn.disabled = true;
+    toggleLoading(true);
+    try {
+      const pos = await getCurrentPositionPromise({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+      const { latitude, longitude } = pos.coords;
+      // Try reverse geocoding to display a friendly name
+      let place = null;
+      try {
+        place = await getGeoInfoReverse(latitude, longitude);
+      } catch { /* ignore reverse errors; we can still proceed */ }
+
+      const name = place?.name || 'Din placering';
+      const country = place?.country || '';
+      const countryCode = place?.country_code || '';
+
+      if (typeof applyLocationAndClosePopup === 'function') {
+        await applyLocationAndClosePopup(name, latitude, longitude, country, countryCode);
+      } else {
+        updateCurrentCity(name, latitude, longitude, country);
+        closeLocationModal();
+      }
+    } catch (err) {
+      let msg = 'Kunne ikke få adgang til geolocation';
+      if (err && err.code === 1) msg = 'Tillad adgang til placering for at bruge denne funktion'; // PERMISSION_DENIED
+      toggleError(msg);
+    } finally {
+      toggleLoading(false);
+      useCurrentBtn.disabled = false;
     }
   }
 

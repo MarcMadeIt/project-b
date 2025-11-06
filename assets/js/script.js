@@ -35,29 +35,22 @@ function initForecastTabs() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(document.activeElement); }
     });
   }
-
-  // Start med week-tab
   activate(document.getElementById('tab-week'));
 }
 
-// Kald funktionen når DOM'en er klar
+
 document.addEventListener('DOMContentLoaded', initForecastTabs);
 
 
-
-
-// ---- Settings modal (localStorage) ----
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsPopup = document.getElementById('userSettings');
 const settingsCloseBtn = document.getElementById('closePopupBtn');
 const settingsForm = document.getElementById('settingsForm');
 const saveBtn = settingsForm ? settingsForm.querySelector('.save-btn') : null;
-
 const prefCityInput = document.getElementById('prefCity');
 const prefClothesSelect = document.getElementById('prefClothesSelect');
 const themeSelect = document.getElementById('themeSelect');
 const notifToggle = document.getElementById('notifToggle');
-// Settings-only city search controls (use the same prefCityInput as the search box)
 const settingsCityResults = document.getElementById('settingsCityResults');
 const settingsCityLoading = document.getElementById('settingsCityLoading');
 const settingsCityError = document.getElementById('settingsCityError');
@@ -115,14 +108,15 @@ function setFormFromSettings(s) {
 
 function getSettingsFromForm() {
   const s = loadSettings();
-  s.city.name = (prefCityInput?.value || '').trim();
-  // take lat/lon from dataset if present
-  if (prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon) {
+  const typedName = (prefCityInput?.value || '').trim();
+  const hasCoords = Boolean(prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon);
+  if (hasCoords) {
+    s.city.name = typedName;
     s.city.lat = parseFloat(prefCityInput.dataset.lat);
     s.city.lon = parseFloat(prefCityInput.dataset.lon);
+    s.city.country = prefCityInput.dataset.country || '';
+    s.city.country_code = prefCityInput.dataset.countryCode || '';
   }
-  s.city.country = prefCityInput.dataset.country || '';
-  s.city.country_code = prefCityInput.dataset.countryCode || '';
   s.clothes = prefClothesSelect ? prefClothesSelect.value : 'neutral';
   s.theme = themeSelect ? themeSelect.value : 'light';
   s.notifications = notifToggle ? notifToggle.value === 'true' : true;
@@ -146,7 +140,15 @@ function updateSaveDisabled() {
   if (!saveBtn) return;
   const stored = loadSettings();
   const fromForm = getSettingsFromForm();
-  saveBtn.disabled = settingsEqual(stored, fromForm);
+  let disabled = settingsEqual(stored, fromForm);
+  // If user typed a different city name but hasn't picked from list (no coords), force disabled
+  const typedName = (prefCityInput?.value || '').trim();
+  const hasCoords = Boolean(prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon);
+  const cityNameChanged = typedName && typedName !== (stored.city?.name || '');
+  if (cityNameChanged && !hasCoords) {
+    disabled = true;
+  }
+  saveBtn.disabled = disabled;
 }
 
 function openSettingsPopup() {
@@ -167,18 +169,15 @@ function closeSettingsPopup() {
   if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
 }
 
-
 if (settingsBtn) settingsBtn.addEventListener('click', openSettingsPopup);
 if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', closeSettingsPopup);
 
-// luk ved klik på overlay
 if (settingsPopup) {
   settingsPopup.addEventListener('click', (e) => {
     if (e.target === settingsPopup) closeSettingsPopup();
   });
 }
 
-// ESC luk
 document.addEventListener('keydown', (e) => {
   if (settingsPopup && settingsPopup.style.display === 'flex' && e.key === 'Escape') {
     e.preventDefault();
@@ -186,16 +185,41 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Gem handler (form submit)
 if (settingsForm) {
   settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    const before = loadSettings();
     const s = getSettingsFromForm();
+    // Block saving if city name changed but user didn't select from list (no coords)
+    const typedName = (prefCityInput?.value || '').trim();
+    const hasCoords = Boolean(prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon);
+    const cityNameChanged = typedName && typedName !== (before.city?.name || '');
+    if (cityNameChanged && !hasCoords) {
+      settingsToggleError('Vælg en by fra listen for at gemme.');
+      updateSaveDisabled();
+      return;
+    }
     saveSettings(s);
     applyTheme(s.theme);
-    // Apply preferred city across the app when saved (if coords present)
-    if (s.city?.name && s.city.lat != null && s.city.lon != null && typeof window.applyLocationAndClosePopup === 'function') {
-      window.applyLocationAndClosePopup(s.city.name, s.city.lat, s.city.lon, s.city.country, s.city.country_code);
+    const cityEqual = (a, b) => (
+      (a?.name || '') === (b?.name || '') &&
+      (Number(a?.lat) || null) === (Number(b?.lat) || null) &&
+      (Number(a?.lon) || null) === (Number(b?.lon) || null) &&
+      (a?.country || '') === (b?.country || '') &&
+      (a?.country_code || '') === (b?.country_code || '')
+    );
+
+    const preferredCityChanged = !cityEqual(before.city, s.city);
+
+    if (typeof window.applyLocationAndClosePopup === 'function') {
+      if (preferredCityChanged && s.city?.name && s.city.lat != null && s.city.lon != null) {
+        window.applyLocationAndClosePopup(s.city.name, s.city.lat, s.city.lon, s.city.country, s.city.country_code);
+      } else {
+        const cur = window.__ahvejr_currentCity;
+        if (cur && cur.lat != null && cur.lon != null) {
+          window.applyLocationAndClosePopup(cur.name, cur.lat, cur.lon, cur.country);
+        }
+      }
     }
     closeSettingsPopup();
   });
@@ -303,11 +327,19 @@ function renderSettingsResults(list) {
 function handleSettingsCitySearch() {
   const q = (prefCityInput?.value || '').trim();
   if (settingsCityDebounce) clearTimeout(settingsCityDebounce);
+  // Invalidate previous selection when user types
+  if (prefCityInput) {
+    delete prefCityInput.dataset.lat;
+    delete prefCityInput.dataset.lon;
+    delete prefCityInput.dataset.country;
+    delete prefCityInput.dataset.countryCode;
+  }
   if (!q) {
     clearSettingsResults();
     settingsToggleError(null);
     settingsToggleLoading(false);
     settingsShowResults(false);
+    updateSaveDisabled();
     return;
   }
   settingsToggleError(null);
@@ -334,28 +366,28 @@ if (prefCityInput) prefCityInput.addEventListener('input', handleSettingsCitySea
 
 // opsæt vejr efter korrekt rækkefølge
 function rotateForecastWeekToTomorrow() {
-    const list = document.querySelector('.forecast-week');
-    if (!list) return;
+  const list = document.querySelector('.forecast-week');
+  if (!list) return;
 
-    const items = Array.from(list.children);
+  const items = Array.from(list.children);
 
-    // 7 dage
-    if (items.length !== 7) return; 
+  // 7 dage
+  if (items.length !== 7) return;
 
-    const jsDay = new Date().getDay();
-    const namesJS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+  const jsDay = new Date().getDay();
+  const namesJS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 
-    // find index i liste udfra navn i html
-    const liNames = items.map(li => (li.querySelector('.forecast-item span')?.textContent || '').trim());
-    let todayIdx = liNames.findIndex(n => n.toLowerCase() === namesJS[jsDay].toLowerCase());
+  // find index i liste udfra navn i html
+  const liNames = items.map(li => (li.querySelector('.forecast-item span')?.textContent || '').trim());
+  let todayIdx = liNames.findIndex(n => n.toLowerCase() === namesJS[jsDay].toLowerCase());
 
-    // starter fra dagen efter current dag
-    const start = (todayIdx + 1) % items.length;
-    const rotated = [...items.slice(start), ...items.slice(0, start)];
+  // starter fra dagen efter current dag
+  const start = (todayIdx + 1) % items.length;
+  const rotated = [...items.slice(start), ...items.slice(0, start)];
 
-    // Sæt dem ind i ny rækkefølge
-    list.innerHTML = '';
-    rotated.forEach(li => list.appendChild(li));
+  // Sæt dem ind i ny rækkefølge
+  list.innerHTML = '';
+  rotated.forEach(li => list.appendChild(li));
 }
 //slut
 

@@ -68,13 +68,10 @@ function mapWeather(code) {
 }
 
 function getClothesForWeather(profile, type, tempC) {
-  // Normalize profile to 'm', 'w' or 'n' (neutral)
   const p = (String(profile).toLowerCase() === 'm' || String(profile).toLowerCase() === 'w')
     ? String(profile).toLowerCase()
     : 'n';
 
-  // Normalize incoming weather type, but we only use it as a minor qualifier (rain/thunder),
-  // not as the main driver anymore. The main selection is temperature-based.
   const aliases = {
     sunny: 'sun',
     clear: 'sun',
@@ -93,7 +90,6 @@ function getClothesForWeather(profile, type, tempC) {
     'sun', 'sun_cloud', 'cloud', 'rain', 'snow', 'thunder', 'mix'
   ].includes(normTypeRaw) ? normTypeRaw : (aliases[normTypeRaw] || 'mix'));
 
-  // Helpers to produce advice per temperature band for each profile
   const adviceForBand = (band) => {
     switch (band) {
       case 'extreme_cold':
@@ -102,37 +98,37 @@ function getClothesForWeather(profile, type, tempC) {
           : p === 'm'
             ? 'Ekstrem kulde: kraftig vinterjakke, hue, handsker, halstørklæde og vinterstøvler'
             : 'Ekstrem kulde: meget varmt overtøj, hue, handsker og støvler';
-      case 'very_cold': // < 0°C
+      case 'very_cold':
         return p === 'w'
           ? 'Varm frakke, hue, handsker og vinterstøvler'
           : p === 'm'
             ? 'Vinterjakke, hue, handsker og vinterstøvler'
             : 'Varm jakke, hue og handsker';
-      case 'cold': // 0-10°C
+      case 'cold':
         return p === 'w'
           ? 'Varm jakke og trøje, lukkede sko'
           : p === 'm'
             ? 'Jakke/sweatshirt og lukkede sko'
             : 'Varm jakke og lukkede sko';
-      case 'cool': // 10-15°C
+      case 'cool':
         return p === 'w'
           ? 'Let jakke eller cardigan over bluse'
           : p === 'm'
             ? 'Let jakke eller trøje over T‑shirt'
             : 'Let jakke eller trøje';
-      case 'mild': // 15-20°C
+      case 'mild':
         return p === 'w'
           ? 'Let bluse eller T‑shirt, evt. tynd jakke'
           : p === 'm'
             ? 'T‑shirt og let trøje'
             : 'T‑shirt, evt. let jakke';
-      case 'warm': // 20-25°C
+      case 'warm':
         return p === 'w'
           ? 'Sommerligt: kjole eller T‑shirt/shorts'
           : p === 'm'
             ? 'Sommerligt: T‑shirt og shorts'
             : 'Let sommertøj';
-      case 'hot': // >= 25°C
+      case 'hot':
         return p === 'w'
           ? 'Meget varmt: let sommertøj og solbeskyttelse'
           : p === 'm'
@@ -161,8 +157,6 @@ function getClothesForWeather(profile, type, tempC) {
         return 'mix';
     }
   };
-
-  // Determine temperature band
   let band = 'mild';
   const hasTemp = typeof tempC === 'number' && !Number.isNaN(tempC);
   if (hasTemp) {
@@ -175,11 +169,8 @@ function getClothesForWeather(profile, type, tempC) {
     else if (t < 25) band = 'warm';
     else band = 'hot';
   }
-
-  // Build advice by temperature first
   let advice = adviceForBand(band);
 
-  // Qualifiers: if it's raining/thundering, add a waterproof note and align image.
   let imgKey = imgForBand(band);
   if (typeNorm === 'rain') {
     advice += ' + regnjakke/vandtætte sko';
@@ -192,7 +183,6 @@ function getClothesForWeather(profile, type, tempC) {
     imgKey = 'snow';
   }
 
-  // Fallback if temperature is not available: use former type-based mapping
   if (!hasTemp) {
     const textByType = {
       sun: p === 'w' ? 'Let sommertøj og solbriller'
@@ -233,7 +223,7 @@ function getClothesForWeather(profile, type, tempC) {
   return {
     text: advice,
     img: `clothes/${p}-${imgKey}.png`,
-    // Keep returning weather type for compatibility with any callers that might use it
+
     type: typeNorm
   };
 }
@@ -276,6 +266,29 @@ function updateWeekFromDaily(daily) {
 }
 
 
+// Try to use the requested non-binary icon; fall back to a free, widely supported alternative
+function resolveNeutralFaIcon() {
+  const preferred = 'fa-non-binary';
+  const fallback = 'fa-genderless';
+  try {
+    const tmp = document.createElement('i');
+    tmp.className = `fa-solid ${preferred}`;
+    tmp.style.position = 'absolute';
+    tmp.style.opacity = '0';
+    tmp.style.pointerEvents = 'none';
+    tmp.style.left = '-9999px';
+    document.body.appendChild(tmp);
+    const content = getComputedStyle(tmp, '::before').content;
+    document.body.removeChild(tmp);
+    // If Font Awesome defines this icon, ::before will be a quoted unicode string like "\fxyz"
+    if (content && content !== 'none' && content !== 'normal' && content !== '""') {
+      return preferred;
+    }
+  } catch (_) { /* ignore cross-browser quirks and just fall back */ }
+  return fallback;
+}
+
+
 function updateWeatherUI(cityName, data, countryName) {
 
   const current = data.current_weather;
@@ -296,11 +309,10 @@ function updateWeatherUI(cityName, data, countryName) {
   const clothes = rec.text;
   const clothesImg = rec.img;
 
-  // Add/update profile icon after the 'Anbefalet tøj' title based on selected profile
   const titleEl = document.querySelector('.recommended .recommended-item h4');
   if (titleEl) {
-    let faClass = 'fa-non-binary';
-    let aria = 'Andet/neutral profil';
+    let faClass = resolveNeutralFaIcon();
+    let aria = 'Non-binær/neutral profil';
     if (profile === 'm') { faClass = 'fa-mars'; aria = 'Mand profil'; }
     else if (profile === 'w') { faClass = 'fa-venus'; aria = 'Kvinde profil'; }
 
@@ -313,7 +325,6 @@ function updateWeatherUI(cityName, data, countryName) {
       profileIcon.setAttribute('title', aria);
       titleEl.appendChild(profileIcon);
     } else {
-      // Reset classes keeping our marker
       profileIcon.className = `fa-solid ${faClass} profile-icon`;
       profileIcon.setAttribute('aria-label', aria);
       profileIcon.setAttribute('title', aria);
@@ -410,6 +421,10 @@ async function applyLocationAndClosePopup(name, lat, lon, country) {
 
     updateWeatherUI(name, current, country);
     updateWeekFromDaily(daily);
+
+    try {
+      window.__ahvejr_currentCity = { name, lat, lon, country: country || '' };
+    } catch { }
 
     if (popup) popup.style.display = "none";
   } catch (err) {
