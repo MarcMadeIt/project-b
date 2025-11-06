@@ -1,11 +1,18 @@
-// --- Open-Meteo: current weather for coords ---
-async function fetchCurrentWeather(lat, lon) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+// fetch the weather data for given lat/lon
+async function fetchWeather(lat, lon) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lat}&longitude=${lon}` +
+    `&current_weather=true` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
+    `&hourly=temperature_2m,relative_humidity_2m,precipitation,weathercode` +
+    `&forecast_days=7&timezone=auto`;
+
   const res = await fetch(url);
   if (!res.ok) throw new Error("Kunne ikke hente vejrdata");
   const json = await res.json();
   if (!json.current_weather) throw new Error("Ingen vejrdata fundet");
-  return json.current_weather;
+  return json;
 }
 
 
@@ -99,7 +106,9 @@ function updateWeekFromDaily(daily) {
 }
 //slut
 
-function updateWeatherUI(cityName, current, countryName) {
+function updateWeatherUI(cityName, data, countryName) {
+
+  const current = data.current_weather;
 
 
   const cityEl = document.querySelector(".current-city h3");
@@ -179,6 +188,42 @@ function updateWeatherUI(cityName, current, countryName) {
     clothesImgEl.alt = clothes;
 
   }
+
+  renderForecastHours(data.hourly, 12);
+}
+
+function iconPathForCode(code) {
+  return `./assets/img/${mapWeather(code).icon}`;
+}
+
+
+function renderForecastHours(hourly, count = 12) {
+  const ul = document.getElementById("forecast-hours");
+  if (!ul || !hourly) return;
+
+  const now = Date.now();
+  const startIdx = hourly.time.findIndex(t => new Date(t).getTime() >= now);
+  const begin = startIdx === -1 ? 0 : startIdx;
+
+  const fmtTime = new Intl.DateTimeFormat("da-DK", { hour: "2-digit", minute: "2-digit" });
+
+  const items = [];
+  for (let i = begin; i < Math.min(begin + count, hourly.time.length); i++) {
+    const t = new Date(hourly.time[i]);
+    const timeLabel = fmtTime.format(t);
+    const temp = Math.round(hourly.temperature_2m[i]);
+    const icon = iconPathForCode(hourly.weathercode[i]);
+
+    items.push(`
+      <li class="forecast-hour">
+        <div class="forecast-item"><span>${timeLabel}</span></div>
+        <div class="forecast-icon forecast-item"><img src="${icon}" alt=""></div>
+        <div class="forecast-item"><span>${temp}°</span></div>
+      </li>
+    `);
+  }
+
+  ul.innerHTML = items.join("");
 }
 
 
@@ -215,7 +260,7 @@ async function applyLocationAndClosePopup(name, lat, lon, country) {
     }
       // henter både nuværende vejr + forventet vejr
       const [current, daily] = await Promise.all([
-          fetchCurrentWeather(lat, lon),
+          fetchWeather(lat, lon),
           fetchDailyForecast(lat, lon),
       ]);
 
