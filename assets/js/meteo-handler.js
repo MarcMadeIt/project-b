@@ -148,7 +148,15 @@ function updateWeatherUI(cityName, current, countryName) {
         else clothes = "T-shirt, shorts og solbriller";
 
       clothesImg = `clothes/${profile}-sun.png`;
-  }
+    
+
+} else if (current.temperature <= 25) {
+    if (profile === 'm') clothes = "Langærmet trøje eller T-shirt med bukser";
+    else if (profile === 'w') clothes = "Let bluse, jeans eller en tynd jakke";
+    else clothes = "Langærmet trøje og bukser";
+
+    clothesImg = `clothes/${profile}-spring.png`;
+}
 
   if (cityEl) cityEl.textContent = countryName ? `${cityName}, ${countryName}` : cityName;
 
