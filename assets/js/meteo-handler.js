@@ -76,17 +76,28 @@ function updateWeatherUI(cityName, current, countryName) {
 
   // Simple clothing recommendation based on temperature
   let clothes = "Almindeligt tøj";
-    let clothesImg = "image.png";
+  let clothesImg = "image.png";
     const profile = getUserClothesProfile();
 
-  if (current.temperature < 0) {
-    clothes = "Vinterjakke og varmt tøj";
-      clothesImg = `clothes/${profile}-snow.png`;
-  } else if (current.temperature < 10) {
-    clothes = "Jakke eller cardigan";
-      clothesImg = `clothes/${profile}-mix.png`;
+    if (current.temperature < 0) {
+        if (profile === 'm') clothes = "Varm vinterjakke og støvler";
+        else if (profile === 'w') clothes = "Vinterfrakke, hue og støvler";
+        else clothes = "Varm jakke, hue og handsker";
+
+        clothesImg = `clothes/${profile}-snow.png`;
+
+    } else if (current.temperature < 10) {
+        if (profile === 'm') clothes = "Jakke og sweatshirt";
+        else if (profile === 'w') clothes = "Cardigan og lange bukser";
+        else clothes = "Let jakke og jeans";
+
+        clothesImg = `clothes/${profile}-mix.png`;
+
   } else if (current.temperature > 25) {
-    clothes = "Let sommertøj";
+        if (profile === 'm') clothes = "T-shirt, shorts og kasket";
+        else if (profile === 'w') clothes = "Top, nederdel eller kjole og solbriller";
+        else clothes = "T-shirt, shorts og solbriller";
+
       clothesImg = `clothes/${profile}-sun.png`;
   }
 
