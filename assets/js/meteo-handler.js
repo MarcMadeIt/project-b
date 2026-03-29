@@ -265,8 +265,6 @@ function updateWeekFromDaily(daily) {
   }
 }
 
-
-// Try to use the requested non-binary icon; fall back to a free, widely supported alternative
 function resolveNeutralFaIcon() {
   const preferred = 'fa-non-binary';
   const fallback = 'fa-genderless';
@@ -280,11 +278,10 @@ function resolveNeutralFaIcon() {
     document.body.appendChild(tmp);
     const content = getComputedStyle(tmp, '::before').content;
     document.body.removeChild(tmp);
-    // If Font Awesome defines this icon, ::before will be a quoted unicode string like "\fxyz"
     if (content && content !== 'none' && content !== 'normal' && content !== '""') {
       return preferred;
     }
-  } catch (_) { /* ignore cross-browser quirks and just fall back */ }
+  } catch (_) { }
   return fallback;
 }
 

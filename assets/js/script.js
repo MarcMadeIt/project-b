@@ -141,7 +141,6 @@ function updateSaveDisabled() {
   const stored = loadSettings();
   const fromForm = getSettingsFromForm();
   let disabled = settingsEqual(stored, fromForm);
-  // If user typed a different city name but hasn't picked from list (no coords), force disabled
   const typedName = (prefCityInput?.value || '').trim();
   const hasCoords = Boolean(prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon);
   const cityNameChanged = typedName && typedName !== (stored.city?.name || '');
@@ -190,7 +189,6 @@ if (settingsForm) {
     e.preventDefault();
     const before = loadSettings();
     const s = getSettingsFromForm();
-    // Block saving if city name changed but user didn't select from list (no coords)
     const typedName = (prefCityInput?.value || '').trim();
     const hasCoords = Boolean(prefCityInput && prefCityInput.dataset.lat && prefCityInput.dataset.lon);
     const cityNameChanged = typedName && typedName !== (before.city?.name || '');
@@ -224,33 +222,27 @@ if (settingsForm) {
     closeSettingsPopup();
   });
 
-  // Track changes to enable/disable save
   settingsForm.addEventListener('input', updateSaveDisabled);
   settingsForm.addEventListener('change', updateSaveDisabled);
 }
 
-// Hold city in sync when user selects a city from the location modal
-// Hook into city selection from the location modal without auto-saving.
-// Wait until applyLocationAndClosePopup is defined (it's in meteo-handler.js).
 (function hookApplyCity() {
   let tries = 0;
   const id = setInterval(() => {
     if (typeof window.applyLocationAndClosePopup === 'function') {
       const orig = window.applyLocationAndClosePopup;
       window.applyLocationAndClosePopup = async function (name, lat, lon) {
-        // Update form for preferred city (do NOT save yet)
+
         if (prefCityInput) {
           prefCityInput.value = name;
           prefCityInput.dataset.lat = String(lat);
           prefCityInput.dataset.lon = String(lon);
-          // country may be provided in extended signature via arguments[3]/[4]
           const country = arguments[3];
           const countryCode = arguments[4];
           if (country) prefCityInput.dataset.country = String(country);
           if (countryCode) prefCityInput.dataset.countryCode = String(countryCode);
           updateSaveDisabled();
         }
-        // Proceed with original behavior (fetch + update UI + close modal)
         const country = arguments[3];
         const countryCode = arguments[4];
         return orig(name, lat, lon, country, countryCode);
@@ -262,7 +254,6 @@ if (settingsForm) {
   }, 100);
 })();
 
-// Settings-only city search handlers
 function settingsToggleLoading(show) {
   if (settingsCityLoading) settingsCityLoading.hidden = !show;
 }
@@ -286,7 +277,6 @@ function settingsShowResults(show) {
 function renderSettingsResults(list) {
   clearSettingsResults();
   if (!settingsCityResults) return;
-  // Ensure container is visible when we have something to show
   settingsShowResults(true);
   if (!list || !list.length) {
     const empty = document.createElement('div');
@@ -307,7 +297,6 @@ function renderSettingsResults(list) {
     btn.dataset.countryCode = item.country_code || '';
     btn.innerHTML = `<i class="fas fa-location-dot"></i><span>${item.name}</span><small>${item.region ? item.region + ', ' : ''}${item.country} (${item.country_code})</small>`;
     btn.addEventListener('click', () => {
-      // Fill preferred city field and datasets
       if (prefCityInput) {
         prefCityInput.value = item.name;
         prefCityInput.dataset.lat = String(item.latitude);
@@ -315,7 +304,8 @@ function renderSettingsResults(list) {
         if (item.country) prefCityInput.dataset.country = String(item.country);
         if (item.country_code) prefCityInput.dataset.countryCode = String(item.country_code);
       }
-      // Clear and hide results after selection
+
+
       clearSettingsResults();
       settingsShowResults(false);
       updateSaveDisabled();
@@ -327,7 +317,6 @@ function renderSettingsResults(list) {
 function handleSettingsCitySearch() {
   const q = (prefCityInput?.value || '').trim();
   if (settingsCityDebounce) clearTimeout(settingsCityDebounce);
-  // Invalidate previous selection when user types
   if (prefCityInput) {
     delete prefCityInput.dataset.lat;
     delete prefCityInput.dataset.lon;
@@ -371,27 +360,22 @@ function rotateForecastWeekToTomorrow() {
 
   const items = Array.from(list.children);
 
-  // 7 dage
   if (items.length !== 7) return;
 
   const jsDay = new Date().getDay();
   const namesJS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 
-  // find index i liste udfra navn i html
   const liNames = items.map(li => (li.querySelector('.forecast-item span')?.textContent || '').trim());
   let todayIdx = liNames.findIndex(n => n.toLowerCase() === namesJS[jsDay].toLowerCase());
 
-  // starter fra dagen efter current dag
   const start = (todayIdx + 1) % items.length;
   const rotated = [...items.slice(start), ...items.slice(0, start)];
 
-  // Sæt dem ind i ny rækkefølge
+
   list.innerHTML = '';
   rotated.forEach(li => list.appendChild(li));
 }
-//slut
 
-// Kør når DOM er klar
 document.addEventListener('DOMContentLoaded', rotateForecastWeekToTomorrow);
 
 
